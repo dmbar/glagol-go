@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "properties": {
+    "type": "object",
+    "required": ["header", "body"],
+    "additionalProperties": false,
+    "properties": {
+      "header": {
+        "type": "string",
+        "additionalProperties": false
+      },
+      "body": {
+        "type": "string",
+        "additionalProperties": false
+      }
+    }
+  }
+}

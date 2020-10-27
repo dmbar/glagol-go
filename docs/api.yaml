@@ -1,0 +1,50 @@
+---
+openapi: 3.0.2
+info:
+  title: Glagol - API for internal use
+  version: 1.0.0
+servers:
+  - url: http://localhost:80/api/internal/v1
+    description: Local testing
+paths:
+  "/page":
+    get:
+      description: Return Page record
+      parameters:
+        - name: oid
+          required: true
+          allowEmptyValue: false
+          in: query
+          schema:
+            type: string
+          example: 1ec6cf42-fa57-44f0-8bfc-feddf7cc19c4
+      responses:
+        "200":
+          # Used for all successfull requests. If Page was not found, returns empty JSON
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "../packages/schemas/page.json#"
+        "400":
+          description: OID was not provided or it is not a valid UUID value
+        "500":
+          description: Internal server error
+    post:
+      description: Save new Page record
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "../packages/schemas/page.data.json#"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "../packages/schemas/page.json#"
+        "400":
+          description: Provided JSON message is invalid
+        "500":
+          description: Internal server error
