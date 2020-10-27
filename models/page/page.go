@@ -1,3 +1,5 @@
+// Package page provides functions to interact with storage
+// and perform CRUD operations on Page object
 package page
 
 import (
