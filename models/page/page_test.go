@@ -124,6 +124,19 @@ func TestUpdate(t *testing.T) {
 	})
 }
 
+func TestQueryStrings(t *testing.T) {
+	gotList := []string{selectByOIDQueryString, insertQueryString, updateQueryString}
+	want := []string{"SELECT oid, created_on, updated_on, data FROM objects.pages WHERE oid = $1",
+		"INSERT INTO objects.pages(data) VALUES ($1) RETURNING oid, created_on, updated_on, data",
+		"UPDATE objects.pages SET data=$1 WHERE oid=$2 RETURNING oid, created_on, updated_on, data"}
+
+	for idx, got := range gotList {
+		if got != want[idx] {
+			t.Errorf("\ngot:\n%s\nwant:\n%s", got, want[idx])
+		}
+	}
+}
+
 // * Mocking *
 // scenarios
 const (

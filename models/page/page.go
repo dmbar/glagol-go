@@ -9,6 +9,12 @@ import (
 	"github.com/bbneizvest/glagol/api/models"
 )
 
+const (
+	selectByOIDQueryString = "SELECT oid, created_on, updated_on, data FROM objects.pages WHERE oid = $1"
+	insertQueryString      = "INSERT INTO objects.pages(data) VALUES ($1) RETURNING oid, created_on, updated_on, data"
+	updateQueryString      = "UPDATE objects.pages SET data=$1 WHERE oid=$2 RETURNING oid, created_on, updated_on, data"
+)
+
 type pageCRUD struct{}
 
 // CRUD operations for Page
@@ -56,17 +62,17 @@ var updateStmt *sql.Stmt
 func init() {
 	var err error
 
-	selectStmt, err = models.DB.Prepare(`SELECT oid, created_on, updated_on, data FROM objects.pages WHERE oid = $1`)
+	selectStmt, err = models.DB.Prepare(selectByOIDQueryString)
 	if err != nil {
 		log.Fatal("prepare SELECT statement error:\n", err)
 	}
 
-	insertStmt, err = models.DB.Prepare(`INSERT INTO objects.pages(data) VALUES ($1) RETURNING oid, created_on, updated_on, data`)
+	insertStmt, err = models.DB.Prepare(insertQueryString)
 	if err != nil {
 		log.Fatal("prepare INSERT INTO statement error:\n", err)
 	}
 
-	updateStmt, err = models.DB.Prepare(`UPDATE objects.pages SET data=$1 WHERE oid=$2 RETURNING oid, created_on, updated_on, data`)
+	updateStmt, err = models.DB.Prepare(updateQueryString)
 	if err != nil {
 		log.Fatal("prepare UPDATE statement error:\n", err)
 	}
