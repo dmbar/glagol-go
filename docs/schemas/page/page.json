@@ -1,9 +1,11 @@
 {
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://example.com/schemas/api/page/page.json",
+  "title": "Page",
+  "description": "Page with header and body",
   "type": "object",
   "properties": {
-    "meta": {
-      "$ref": "page.meta.json#"
-    },
-    "data": { "$ref": "page.data.json#" }
+    "meta": { "$ref": "../meta.json" },
+    "data": { "$ref": "./page.data.json" }
   }
 }
