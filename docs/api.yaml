@@ -4,7 +4,7 @@ info:
   title: Glagol - API for internal use
   version: 1.0.0
 servers:
-  - url: http://localhost:80/api/internal/v1
+  - url: http://localhost:80/api/v1
     description: Local testing
 paths:
   "/page":
