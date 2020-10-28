@@ -26,7 +26,7 @@ var tPage = Page{
 		Body:   tBody,
 	},
 }
-var tJSONData = []byte(fmt.Sprintf(`{"header": "%s", "body": "%s"}`, tHeader, tBody))
+var tJSONData = []byte(fmt.Sprintf(`{"header": %q, "body": %q}`, tHeader, tBody))
 
 // * TESTS *
 func TestSelectByOID(t *testing.T) {
@@ -212,8 +212,8 @@ func stubScanValues(dest ...interface{}) error {
 				return fmt.Errorf("error in stub - expected type *[]bytes, got %T", val)
 			}
 			*currVal = []byte(fmt.Sprintf(`{
-				"header": "%s",
-				"body":   "%s"
+				"header": %q,
+				"body":   %q
 				}`, tHeader, tBody))
 		}
 	}
