@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "properties": {
+    "type": "object",
+    "required": ["oid", "createdOn", "updatedOn"],
+    "additionalProperties": false,
+    "properties": {
+      "oid": {
+        "type": "string",
+        "additionalProperties": false
+      },
+      "createdOn": {
+        "type": "string",
+        "additionalProperties": false
+      },
+      "updatedOn": {
+        "type": "string",
+        "additionalProperties": false
+      }
+    }
+  }
+}

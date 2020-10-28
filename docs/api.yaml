@@ -25,7 +25,7 @@ paths:
           content:
             application/json:
               schema:
-                "$ref": "../packages/schemas/page.json#"
+                "$ref": "./schemas/page/page.json#"
         "400":
           description: OID was not provided or it is not a valid UUID value
         "500":
@@ -36,14 +36,14 @@ paths:
         content:
           application/json:
             schema:
-              "$ref": "../packages/schemas/page.data.json#"
+              "$ref": "./schemas/page/page.data.json#"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                "$ref": "../packages/schemas/page.json#"
+                "$ref": "./schemas/page/page.json#"
         "400":
           description: Provided JSON message is invalid
         "500":

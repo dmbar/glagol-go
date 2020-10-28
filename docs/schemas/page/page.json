@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "meta": {
+      "$ref": "page.meta.json#"
+    },
+    "data": { "$ref": "page.data.json#" }
+  }
+}
