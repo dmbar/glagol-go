@@ -1,178 +1,183 @@
 package page
 
 import (
-	"database/sql"
 	"encoding/json"
-	"log"
+	"fmt"
 	"time"
 
-	"github.com/bbneizvest/glagol/api/models"
+	"github.com/dmbar/glagol-go/models"
 )
 
-type pageCRUD struct{}
+const typeAssertError string = "query page error - type assertion failed at %v"
 
-// CRUD operations for Page
-var CRUD pageCRUD
-
-// Select executes SELECT statement to get single instance of Page
-//
-// params - Parameters to be passed to statement
-//
-// dest - Variables into which results should be saved
-func (c pageCRUD) Select(params []interface{}, dest ...interface{}) error {
-	return selectStmt.QueryRow(params...).Scan(dest...)
-}
-
-// Insert executes INSERT INTO statement to save and
-// return new Page instance
-//
-// params - Parameters to be passed to statement
-//
-// dest - Variables into which results should be saved
-func (c pageCRUD) Insert(params []interface{}, dest ...interface{}) error {
-	return insertStmt.QueryRow(params...).Scan(dest...)
-}
-
-// Update executes UPDATE statement to save to and
-// return updated Page instance
-//
-// params - Parameters to be passed to statement
-//
-// dest - Variables into which results should be saved
-func (c pageCRUD) Update(params []interface{}, dest ...interface{}) error {
-	return updateStmt.QueryRow(params...).Scan(dest...)
-}
-
-// SELECT statement to query Page instance
-var selectStmt *sql.Stmt
-
-// INSERT statement to save new Page instance
-var insertStmt *sql.Stmt
-
-// UPDATE statement to save new Page instance
-var updateStmt *sql.Stmt
-
-// Preparing SQL statements for execution
-func init() {
-	var err error
-
-	selectStmt, err = models.DB.Prepare(`SELECT oid, created_on, updated_on, data FROM objects.pages WHERE oid = $1`)
-	if err != nil {
-		log.Fatal("prepare SELECT statement error:\n", err)
-	}
-
-	insertStmt, err = models.DB.Prepare(`INSERT INTO objects.pages(data) VALUES ($1) RETURNING oid, created_on, updated_on, data`)
-	if err != nil {
-		log.Fatal("prepare INSERT INTO statement error:\n", err)
-	}
-
-	updateStmt, err = models.DB.Prepare(`UPDATE objects.pages SET data=$1 WHERE oid=$2 RETURNING oid, created_on, updated_on, data`)
-	if err != nil {
-		log.Fatal("prepare UPDATE statement error:\n", err)
-	}
-}
-
-// SelectByOID retrieves a single Page record from database.
-// If no results are found then returns sql.ErrNoRows.
-//
-// oid - UUID key of a record
-//
-// crud - interface for sending queries
-func SelectByOID(oid string, crud models.CRUDForObject) (Page, error) {
-	var resultPage Page
-	var jsonPageData []byte
-
-	err := crud.Select([]interface{}{oid},
-		&resultPage.Meta.Oid,
-		&resultPage.Meta.CreatedOn,
-		&resultPage.Meta.UpdatedOn,
-		&jsonPageData)
-
-	if err != nil {
-		log.Printf("select query error: %v\n", err)
-		return Page{}, err
-	}
-
-	err = json.Unmarshal(jsonPageData, &resultPage.Data)
-	if err != nil {
-		log.Printf("JSON unmarshaling error: %v\n", err)
-		return Page{}, err
-	}
-
-	return resultPage, nil
-}
-
-// Insert saves and returns new Page record from DB.
-//
-// jsonData - Page Data field in JSON encoding
-//
-// crud - interface for sending queries
-func Insert(jsonPageData []byte, crud models.CRUDForObject) (Page, error) {
-	var resultPage Page
-
-	err := crud.Insert([]interface{}{jsonPageData},
-		&resultPage.Meta.Oid,
-		&resultPage.Meta.CreatedOn,
-		&resultPage.Meta.UpdatedOn,
-		&jsonPageData)
-
-	if err != nil {
-		log.Printf("insert query error: %v\n", err)
-		return Page{}, err
-	}
-
-	err = json.Unmarshal(jsonPageData, &resultPage.Data)
-	if err != nil {
-		log.Printf("JSON unmarshaling error: %v\n", err)
-		return Page{}, err
-	}
-
-	return resultPage, nil
-}
-
-// Update saves page data to existing record
-// and returns updated Page record from DB.
-//
-// oid - UUID key of a record
-//
-// jsonData - Page Data field in JSON encoding
-//
-// crud - interface for sending queries
-func Update(oid string, jsonPageData []byte, crud models.CRUDForObject) (Page, error) {
-	var resultPage Page
-
-	err := crud.Update([]interface{}{jsonPageData, oid},
-		&resultPage.Meta.Oid,
-		&resultPage.Meta.CreatedOn,
-		&resultPage.Meta.UpdatedOn,
-		&jsonPageData)
-
-	if err != nil {
-		log.Printf("update query error: %v\n", err)
-		return Page{}, err
-	}
-
-	err = json.Unmarshal(jsonPageData, &resultPage.Data)
-	if err != nil {
-		log.Printf("JSON unmarshaling error: %v\n", err)
-		return Page{}, err
-	}
-
-	return resultPage, nil
-}
-
-// Page is an object for a single article with Header and Body.
+// Page represents one (1) Page
 type Page struct {
-	Meta meta
-	Data data
-}
-type meta struct {
-	Oid       string
-	CreatedOn time.Time
-	UpdatedOn time.Time
+	Meta meta `json:"meta"`
+	Data Data `json:"data"`
 }
 
-type data struct {
+type meta struct {
+	OID       string    `json:"oid"`
+	CreatedOn time.Time `json:"createdOn"`
+	UpdatedOn time.Time `json:"updatedOn"`
+}
+
+// Data represents contents of Page object. Corresponds to "Data" column in DB
+type Data struct {
 	Header string `json:"header"`
 	Body   string `json:"body"`
+}
+
+// GetByOID returns one (1) Page from source using ObjectID
+//
+// oid - ObjectID of record
+//
+// source - data source (DB, external service, etc.)
+func GetByOID(oid string, source models.DataSource) (Page, error) {
+	var result Page
+	// Variables to be used in query
+	var createdOn time.Time
+	var updatedOn time.Time
+	var dataJSON []byte
+
+	// Executing query to DB
+	queryResult, err := source.ExecuteQuery("selectByOID", []interface{}{oid}, &createdOn, &updatedOn, &dataJSON)
+	if err != nil {
+		return Page{}, err
+	}
+
+	result.Meta.OID = oid
+	// Parsing query result
+	// Since UUIDs are unique, queryResult will be an array with 1 element
+	row, ok := queryResult[0].([]interface{})
+	if !ok {
+		return Page{}, fmt.Errorf(typeAssertError, row)
+	}
+	for colNum, column := range row {
+		switch colNum {
+		case 0: // CreatedOn
+			value, ok := column.(*time.Time)
+			if !ok {
+				return Page{}, fmt.Errorf(typeAssertError, "CreatedOn")
+			}
+			result.Meta.CreatedOn = *value
+		case 1: // UpdatedOn
+			value, ok := column.(*time.Time)
+			if !ok {
+				return Page{}, fmt.Errorf(typeAssertError, "UpdatedOn")
+			}
+			result.Meta.UpdatedOn = *value
+		case 2: // JSON Data
+			value, ok := column.(*[]byte)
+			if !ok {
+				return Page{}, fmt.Errorf(typeAssertError, "Data")
+			}
+			dataJSON = *value
+		}
+	}
+
+	// JSON Unmarshaling
+	err = json.Unmarshal(dataJSON, &result.Data)
+	if err != nil {
+		return Page{}, fmt.Errorf("JSON unmarshaling error: %v", err)
+	}
+
+	return result, nil
+}
+
+// Save saves Page data to source and returns new Page
+//
+// data - Page data
+//
+// source - data source (DB, external service, etc.)
+func Save(data Data, source models.DataSource) (Page, error) {
+	var result Page
+	// Variables to be used in query
+	var oid string
+	var createdOn time.Time
+	var updatedOn time.Time
+
+	// Executing query to DB
+	queryResult, err := source.ExecuteQuery("insert", []interface{}{data}, &oid, &createdOn, &updatedOn)
+	if err != nil {
+		return Page{}, err
+	}
+
+	result.Data = data
+	// Parsing query result
+	// Since we are saving 1 instance of Page, queryResult will be an array with 1 element
+	row, ok := queryResult[0].([]interface{})
+	if !ok {
+		return Page{}, fmt.Errorf(typeAssertError, row)
+	}
+	for colNum, column := range row {
+		switch colNum {
+		case 0: // JSON Data
+			value, ok := column.(*string)
+			if !ok {
+				return Page{}, fmt.Errorf(typeAssertError, "OID")
+			}
+			result.Meta.OID = *value
+		case 1: // CreatedOn
+			value, ok := column.(*time.Time)
+			if !ok {
+				return Page{}, fmt.Errorf(typeAssertError, "CreatedOn")
+			}
+			result.Meta.CreatedOn = *value
+		case 2: // UpdatedOn
+			value, ok := column.(*time.Time)
+			if !ok {
+				return Page{}, fmt.Errorf(typeAssertError, "UpdatedOn")
+			}
+			result.Meta.UpdatedOn = *value
+		}
+	}
+
+	return result, nil
+}
+
+// Update updates Page instance in source and returns updated Page
+//
+// oid - ObjectID of record
+//
+// data - Page data
+//
+// source - data source (DB, external service, etc.)
+func Update(oid string, data Data, source models.DataSource) (Page, error) {
+	var result Page
+	// Variables to be used in query
+	var createdOn time.Time
+	var updatedOn time.Time
+
+	// Executing query to DB
+	queryResult, err := source.ExecuteQuery("update", []interface{}{data, oid}, &createdOn, &updatedOn)
+	if err != nil {
+		return Page{}, err
+	}
+
+	result.Meta.OID = oid
+	result.Data = data
+	// Since UUIDs are unique, queryResult will be an array with 1 element
+	row, ok := queryResult[0].([]interface{})
+	if !ok {
+		return Page{}, fmt.Errorf(typeAssertError, row)
+	}
+	for colNum, column := range row {
+		switch colNum {
+		case 0: // CreatedOn
+			value, ok := column.(*time.Time)
+			if !ok {
+				return Page{}, fmt.Errorf(typeAssertError, "CreatedOn")
+			}
+			result.Meta.CreatedOn = *value
+		case 1: // UpdatedOn
+			value, ok := column.(*time.Time)
+			if !ok {
+				return Page{}, fmt.Errorf(typeAssertError, "UpdatedOn")
+			}
+			result.Meta.UpdatedOn = *value
+		}
+	}
+
+	return result, nil
 }

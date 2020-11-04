@@ -1,4 +1,4 @@
-module github.com/bbneizvest/glagol/api
+module github.com/dmbar/glagol-go
 
 go 1.15
 
