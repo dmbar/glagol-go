@@ -17,7 +17,7 @@ paths:
           in: query
           schema:
             type: string
-          example: 1ec6cf42-fa57-44f0-8bfc-feddf7cc19c4
+          example: 33361260-b811-4f9f-8c81-2ffab270d758
       responses:
         "200":
           # Used for all successfull requests. If Page was not found, returns empty JSON
@@ -25,7 +25,7 @@ paths:
           content:
             application/json:
               schema:
-                "$ref": "./schemas/page/page.json#"
+                "$ref": "../packages/schemas/page.json#"
         "400":
           description: OID was not provided or it is not a valid UUID value
         "500":
@@ -36,15 +36,33 @@ paths:
         content:
           application/json:
             schema:
-              "$ref": "./schemas/page/page.data.json#"
+              "$ref": "../packages/schemas/page.data.json#"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                "$ref": "./schemas/page/page.json#"
+                "$ref": "../packages/schemas/page.json#"
         "400":
-          description: Provided JSON message is invalid
+          description: JSON message is invalid
+        "500":
+          description: Internal server error
+    put:
+      description: Update existing Page record
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "../packages/schemas/page.data.json#"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "../packages/schemas/page.json#"
+        "400":
+          description: Provided OID or JSON message is invalid
         "500":
           description: Internal server error
