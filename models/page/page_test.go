@@ -1,222 +1,349 @@
 package page
 
 import (
-	"database/sql"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
 
-// * Constants *
 const (
-	tOid             string = "2aec0be7-b093-44eb-8b6d-9367d2ef7a5b"
-	tHeader          string = "Eraserhead"
-	tBody            string = "On 19 March 1977, the world changed, after which there was a long uncomfortable silence."
-	tGenericErrorMsg string = "jUsT aN eRrrAwr :3"
+	SuccessGet = iota
+	SuccessSave
+	SuccessUpdate
+	Error
+	ErrorWrongType
 )
+
+var (
+	tOID          = "413f2dcc-a360-450c-acd8-6588e2861e5b"
+	tHeader       = "Eraserhead"
+	tBody         = "On 19 March 1977, the world changed, after which there was a long uncomfortable silence."
+	tErrorMsg     = "jUsT aN eRrrAwr tee-hee :3"
+	tJSONErrorMsg = "JSON unmarshaling error: "
+)
+
+var tDataJSON = []byte(fmt.Sprintf(`{"header":%q,"body":%q}`, tHeader, tBody))
+var tDataInvalidJSON = []byte("invalid json")
 
 var tPage = Page{
 	Meta: meta{
-		Oid:       tOid,
+		OID:       tOID,
 		CreatedOn: time.Date(1994, 2, 1, 13, 13, 13, 0, time.UTC),
 		UpdatedOn: time.Date(1994, 2, 1, 13, 13, 13, 0, time.UTC),
 	},
-	Data: data{
+	Data: Data{
 		Header: tHeader,
 		Body:   tBody,
 	},
 }
-var tJSONData = []byte(fmt.Sprintf(`{"header": %q, "body": %q}`, tHeader, tBody))
 
-// * TESTS *
-func TestSelectByOID(t *testing.T) {
+type mockQuery struct {
+	scenario  int
+	oid       interface{}
+	createdOn interface{}
+	updatedOn interface{}
+	dataJSON  interface{}
+}
+
+func (q mockQuery) ExecuteQuery(queryCode string, params []interface{}, dest ...interface{}) ([]interface{}, error) {
+	switch q.scenario {
+	case SuccessGet:
+		row := []interface{}{q.createdOn, q.updatedOn, q.dataJSON}
+		return []interface{}{row}, nil
+	case SuccessSave:
+		row := []interface{}{q.oid, q.createdOn, q.updatedOn}
+		return []interface{}{row}, nil
+	case SuccessUpdate:
+		row := []interface{}{q.createdOn, q.updatedOn}
+		return []interface{}{row}, nil
+	case Error:
+		return nil, fmt.Errorf(tErrorMsg)
+	}
+
+	return nil, fmt.Errorf("unexpected end for mock")
+}
+
+func TestGetByOID(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		mockCRUD := mockCRUDObject{scenario: Success}
-
-		got, err := SelectByOID(tOid, mockCRUD)
+		mockQuery := mockQuery{
+			scenario:  SuccessGet,
+			createdOn: &tPage.Meta.CreatedOn,
+			updatedOn: &tPage.Meta.UpdatedOn,
+			dataJSON:  &tDataJSON,
+		}
 		want := tPage
 
+		got, err := GetByOID(tOID, mockQuery)
+
 		if err != nil {
-			t.Errorf("expected success, got error %v\n", err)
+			t.Errorf("expected Page, got err: %q", err)
+			t.FailNow()
 		}
 
 		if got != want {
-			t.Errorf("\ngot:\n%+v\n\nwant:\n%+v", got, want)
+			t.Errorf("\nwant: %+v\ngot: %+v\n", want, got)
 		}
 	})
 
-	t.Run("page not found", func(t *testing.T) {
-		mockCRUD := mockCRUDObject{scenario: NoRowsError}
-
-		got, err := SelectByOID("2aec0be7-b093-44eb-8b6d-9367d2ef7a5b", mockCRUD)
+	t.Run("error - ExecuteQuery", func(t *testing.T) {
+		mockQuery := mockQuery{scenario: Error}
 		want := Page{}
 
-		if got != want && err != sql.ErrNoRows {
-			t.Errorf("expected empty Page and error ErrNoRows, got Page: %+v; error: %v\n", got, err)
+		got, err := GetByOID(tOID, mockQuery)
+
+		if err == nil {
+			t.Errorf("expected error, got nil")
+			t.FailNow()
+		}
+
+		if err.Error() != tErrorMsg {
+			t.Errorf("expected error %q, got %q", tErrorMsg, err.Error())
+			t.FailNow()
+		}
+
+		if got != want {
+			t.Errorf("\nwant: %+v\ngot: %+v\n", want, got)
 		}
 	})
 
-	t.Run("generic error", func(t *testing.T) {
-		mockCRUD := mockCRUDObject{scenario: Error}
+	t.Run("error - wrong types in columns", func(t *testing.T) {
+		// Each column return value with invalid type
+		mockQueries := map[string]mockQuery{
+			"CreatedOn": {
+				scenario:  SuccessGet,
+				createdOn: false,
+				updatedOn: &tPage.Meta.UpdatedOn,
+				dataJSON:  &tDataJSON,
+			},
+			"UpdatedOn": {
+				scenario:  SuccessGet,
+				createdOn: &tPage.Meta.CreatedOn,
+				updatedOn: false,
+				dataJSON:  &tDataJSON,
+			},
+			"Data": {
+				scenario:  SuccessGet,
+				createdOn: &tPage.Meta.CreatedOn,
+				updatedOn: &tPage.Meta.UpdatedOn,
+				dataJSON:  false,
+			},
+		}
 
-		got, err := SelectByOID("2aec0be7-b093-44eb-8b6d-9367d2ef7a5b", mockCRUD)
+		for columnName, mockQuery := range mockQueries {
+			want := Page{}
+
+			got, err := GetByOID(tOID, mockQuery)
+
+			if err == nil {
+				t.Errorf("expected error, got nil")
+				t.FailNow()
+			}
+
+			wantErr := fmt.Sprintf(typeAssertError, columnName)
+			if err.Error() != wantErr {
+				t.Errorf("expected error %q, got %q", wantErr, err.Error())
+				t.FailNow()
+			}
+
+			if got != want {
+				t.Errorf("\nwant: %+v\ngot: %+v\n", want, got)
+			}
+		}
+	})
+
+	t.Run("error - unmarshaling JSON", func(t *testing.T) {
+		mockQuery := mockQuery{
+			scenario:  SuccessGet,
+			createdOn: &tPage.Meta.CreatedOn,
+			updatedOn: &tPage.Meta.UpdatedOn,
+			dataJSON:  &tDataInvalidJSON,
+		}
 		want := Page{}
 
-		if got != want && err.Error() != tGenericErrorMsg {
-			t.Errorf("expected empty Page and error, got Page: %+v; error: %v\n", got, err)
+		got, err := GetByOID(tOID, mockQuery)
+
+		if err == nil {
+			t.Errorf("expected error, got nil")
+			t.FailNow()
+		}
+
+		if !strings.HasPrefix(err.Error(), tJSONErrorMsg) {
+			t.Errorf("expected error %q, got %q", tJSONErrorMsg, err.Error())
+			t.FailNow()
+		}
+
+		if got != want {
+			t.Errorf("\nwant: %+v\ngot: %+v\n", want, got)
 		}
 	})
 }
-
-func TestInsert(t *testing.T) {
+func TestSave(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		mockCRUD := mockCRUDObject{scenario: Success}
-
-		got, err := Insert(tJSONData, mockCRUD)
+		mockQuery := mockQuery{
+			scenario:  SuccessSave,
+			oid:       &tOID,
+			createdOn: &tPage.Meta.CreatedOn,
+			updatedOn: &tPage.Meta.UpdatedOn,
+		}
 		want := tPage
 
+		got, err := Save(tPage.Data, mockQuery)
+
 		if err != nil {
-			t.Errorf("expected success, got error %v\n", err)
+			t.Errorf("expected Page, got err: %q", err)
+			t.FailNow()
 		}
 
 		if got != want {
-			t.Errorf("\ngot:\n%+v\n\nwant:\n%+v", got, want)
+			t.Errorf("\nwant: %+v\ngot: %+v\n", want, got)
 		}
 	})
 
-	t.Run("generic error", func(t *testing.T) {
-		mockCRUD := mockCRUDObject{scenario: Error}
-
-		got, err := Insert(tJSONData, mockCRUD)
+	t.Run("error - ExecuteQuery", func(t *testing.T) {
+		mockQuery := mockQuery{scenario: Error}
 		want := Page{}
 
-		if got != want && err.Error() != tGenericErrorMsg {
-			t.Errorf("expected empty Page and error, got Page: %+v; error: %v\n", got, err)
+		got, err := Save(tPage.Data, mockQuery)
+
+		if err == nil {
+			t.Errorf("expected error, got nil")
+			t.FailNow()
+		}
+
+		if err.Error() != tErrorMsg {
+			t.Errorf("expected error %q, got %q", tErrorMsg, err.Error())
+			t.FailNow()
+		}
+
+		if got != want {
+			t.Errorf("\nwant: %+v\ngot: %+v\n", want, got)
+		}
+	})
+
+	t.Run("error - wrong types in columns", func(t *testing.T) {
+		// Each column return value with invalid type
+		mockQueries := map[string]mockQuery{
+			"OID": {
+				scenario:  SuccessSave,
+				oid:       false,
+				createdOn: &tPage.Meta.CreatedOn,
+				updatedOn: &tPage.Meta.UpdatedOn,
+			},
+			"CreatedOn": {
+				scenario:  SuccessSave,
+				oid:       &tOID,
+				createdOn: false,
+				updatedOn: &tPage.Meta.UpdatedOn,
+			},
+			"UpdatedOn": {
+				scenario:  SuccessSave,
+				oid:       &tOID,
+				createdOn: &tPage.Meta.CreatedOn,
+				updatedOn: false,
+			},
+		}
+
+		for columnName, mockQuery := range mockQueries {
+			want := Page{}
+
+			got, err := Save(tPage.Data, mockQuery)
+
+			if err == nil {
+				t.Errorf("expected error, got nil")
+				t.FailNow()
+			}
+
+			wantErr := fmt.Sprintf(typeAssertError, columnName)
+			if err.Error() != wantErr {
+				t.Errorf("expected error %q, got %q", wantErr, err.Error())
+				t.FailNow()
+			}
+
+			if got != want {
+				t.Errorf("\nwant: %+v\ngot: %+v\n", want, got)
+			}
 		}
 	})
 }
 
 func TestUpdate(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		mockCRUD := mockCRUDObject{scenario: Success}
-
-		got, err := Update(tOid, tJSONData, mockCRUD)
+		mockQuery := mockQuery{
+			scenario:  SuccessUpdate,
+			oid:       &tOID,
+			createdOn: &tPage.Meta.CreatedOn,
+			updatedOn: &tPage.Meta.UpdatedOn,
+		}
 		want := tPage
 
+		got, err := Update(tOID, tPage.Data, mockQuery)
+
 		if err != nil {
-			t.Errorf("expected success, got error %v\n", err)
+			t.Errorf("expected Page, got err: %q", err)
+			t.FailNow()
 		}
 
 		if got != want {
-			t.Errorf("\ngot:\n%+v\n\nwant:\n%+v", got, want)
+			t.Errorf("\nwant: %+v\ngot: %+v\n", want, got)
 		}
 	})
 
-	t.Run("generic error", func(t *testing.T) {
-		mockCRUD := mockCRUDObject{scenario: Error}
-
-		got, err := Update(tOid, tJSONData, mockCRUD)
+	t.Run("error - ExecuteQuery", func(t *testing.T) {
+		mockQuery := mockQuery{scenario: Error}
 		want := Page{}
 
-		if got != want && err.Error() != tGenericErrorMsg {
-			t.Errorf("expected empty Page and error, got Page: %+v; error: %v\n", got, err)
+		got, err := Update(tOID, tPage.Data, mockQuery)
+
+		if err == nil {
+			t.Errorf("expected error, got nil")
+			t.FailNow()
+		}
+
+		if err.Error() != tErrorMsg {
+			t.Errorf("expected error %q, got %q", tErrorMsg, err.Error())
+			t.FailNow()
+		}
+
+		if got != want {
+			t.Errorf("\nwant: %+v\ngot: %+v\n", want, got)
 		}
 	})
-}
 
-func TestQueryStrings(t *testing.T) {
-	gotList := []string{selectByOIDQueryString, insertQueryString, updateQueryString}
-	want := []string{"SELECT oid, created_on, updated_on, data FROM objects.pages WHERE oid = $1",
-		"INSERT INTO objects.pages(data) VALUES ($1) RETURNING oid, created_on, updated_on, data",
-		"UPDATE objects.pages SET data=$1 WHERE oid=$2 RETURNING oid, created_on, updated_on, data"}
-
-	for idx, got := range gotList {
-		if got != want[idx] {
-			t.Errorf("\ngot:\n%s\nwant:\n%s", got, want[idx])
+	t.Run("error - wrong types in columns", func(t *testing.T) {
+		// Each column return value with invalid type
+		mockQueries := map[string]mockQuery{
+			"CreatedOn": {
+				scenario:  SuccessUpdate,
+				createdOn: false,
+				updatedOn: &tPage.Meta.UpdatedOn,
+			},
+			"UpdatedOn": {
+				scenario:  SuccessUpdate,
+				createdOn: &tPage.Meta.CreatedOn,
+				updatedOn: false,
+			},
 		}
-	}
-}
 
-// * Mocking *
-// scenarios
-const (
-	Success = iota
-	NoRowsError
-	Error
-)
+		for columnName, mockQuery := range mockQueries {
+			want := Page{}
 
-type mockCRUDObject struct {
-	scenario int
-}
+			got, err := Update(tOID, tPage.Data, mockQuery)
 
-func (mock mockCRUDObject) Select(params []interface{}, dest ...interface{}) error {
-	switch mock.scenario {
-	case Success:
-		stubScanValues(dest...)
-	case NoRowsError:
-		return sql.ErrNoRows
-	case Error:
-		return fmt.Errorf(tGenericErrorMsg)
-	}
-
-	return nil
-}
-
-func (mock mockCRUDObject) Insert(params []interface{}, dest ...interface{}) error {
-	switch mock.scenario {
-	case Success:
-		stubScanValues(dest...)
-	case Error:
-		return fmt.Errorf(tGenericErrorMsg)
-	}
-
-	return nil
-}
-
-func (mock mockCRUDObject) Update(params []interface{}, dest ...interface{}) error {
-	switch mock.scenario {
-	case Success:
-		stubScanValues(dest...)
-	case Error:
-		return fmt.Errorf(tGenericErrorMsg)
-	}
-
-	return nil
-}
-
-// Stub Scan values
-func stubScanValues(dest ...interface{}) error {
-	for idx, val := range dest {
-		switch idx {
-		case 0: // * Oid
-			currVal, ok := val.(*string)
-			if !ok {
-				return fmt.Errorf("error in stub - expected type *string, got %T", val)
+			if err == nil {
+				t.Errorf("expected error, got nil")
+				t.FailNow()
 			}
-			*currVal = tOid
-		case 1: // * CreatedOn
-			currVal, ok := val.(*time.Time)
-			if !ok {
-				return fmt.Errorf("error in stub - expected type *time.Time, got %T", val)
+
+			wantErr := fmt.Sprintf(typeAssertError, columnName)
+			if err.Error() != wantErr {
+				t.Errorf("expected error %q, got %q", wantErr, err.Error())
+				t.FailNow()
 			}
-			*currVal = time.Date(1994, 2, 1, 13, 13, 13, 0, time.UTC)
-		case 2: // * UpdatedOn
-			currVal, ok := val.(*time.Time)
-			if !ok {
-				return fmt.Errorf("error in stub - expected type *time.Time, got %T", val)
+
+			if got != want {
+				t.Errorf("\nwant: %+v\ngot: %+v\n", want, got)
 			}
-			*currVal = time.Date(1994, 2, 1, 13, 13, 13, 0, time.UTC)
-		case 3: // * Data
-			currVal, ok := val.(*[]byte)
-			if !ok {
-				return fmt.Errorf("error in stub - expected type *[]bytes, got %T", val)
-			}
-			*currVal = []byte(fmt.Sprintf(`{
-				"header": %q,
-				"body":   %q
-				}`, tHeader, tBody))
 		}
-	}
-
-	return nil
+	})
 }
