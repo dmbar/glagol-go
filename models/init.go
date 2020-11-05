@@ -27,12 +27,9 @@ func init() {
 // Store is a general interface for all queries to different data sources
 type Store interface {
 	// ExecuteQuery performs a query and returns rows with result.
-	//
-	// queryCode - Query to execute. Optional
-	//
-	// params - Query parameters
-	//
-	// dest - Variables for saving. Optional
+	//  queryCode - Query to execute. Optional
+	//  params - Query parameters
+	//  dest - Variables for saving. Optional
 	ExecuteQuery(queryCode string, params []interface{}, dest ...interface{}) ([]interface{}, error)
 }
 
@@ -44,12 +41,9 @@ type DBStore struct {
 
 // ExecuteQuery performs a query and returns rows with result.
 // If query is not supposed to return anything it returns (nil, nil)
-//
-// queryCode - Query to execute. Should be defined on DataSourceDB object
-//
-// params - Parameters for a SQL statement
-//
-// dest - Variables for saving results of a query, equals number of columns in SQL statement
+//  queryCode - Query to execute. Should be defined on DataSourceDB object
+//  params - Parameters for a SQL statement
+//  dest - Variables for saving results of a query, equals number of columns in SQL statement
 func (q DBStore) ExecuteQuery(queryCode string, params []interface{}, dest ...interface{}) ([]interface{}, error) {
 	rows, err := q.Stmnts[queryCode].Query(params...)
 	if err != nil {

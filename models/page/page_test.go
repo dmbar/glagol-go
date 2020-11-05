@@ -38,7 +38,7 @@ var tPage = Page{
 	},
 }
 
-type mockQuery struct {
+type mockStore struct {
 	scenario  int
 	oid       interface{}
 	createdOn interface{}
@@ -46,7 +46,7 @@ type mockQuery struct {
 	dataJSON  interface{}
 }
 
-func (q mockQuery) ExecuteQuery(queryCode string, params []interface{}, dest ...interface{}) ([]interface{}, error) {
+func (q mockStore) ExecuteQuery(queryCode string, params []interface{}, dest ...interface{}) ([]interface{}, error) {
 	switch q.scenario {
 	case SuccessGet:
 		row := []interface{}{q.createdOn, q.updatedOn, q.dataJSON}
@@ -66,7 +66,7 @@ func (q mockQuery) ExecuteQuery(queryCode string, params []interface{}, dest ...
 
 func TestGetByOID(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		mockQuery := mockQuery{
+		mock := mockStore{
 			scenario:  SuccessGet,
 			createdOn: &tPage.Meta.CreatedOn,
 			updatedOn: &tPage.Meta.UpdatedOn,
@@ -74,7 +74,7 @@ func TestGetByOID(t *testing.T) {
 		}
 		want := tPage
 
-		got, err := GetByOID(tOID, mockQuery)
+		got, err := GetByOID(tOID, mock)
 
 		if err != nil {
 			t.Errorf("expected Page, got err: %q", err)
@@ -87,10 +87,10 @@ func TestGetByOID(t *testing.T) {
 	})
 
 	t.Run("error - ExecuteQuery", func(t *testing.T) {
-		mockQuery := mockQuery{scenario: Error}
+		mock := mockStore{scenario: Error}
 		want := Page{}
 
-		got, err := GetByOID(tOID, mockQuery)
+		got, err := GetByOID(tOID, mock)
 
 		if err == nil {
 			t.Errorf("expected error, got nil")
@@ -109,7 +109,7 @@ func TestGetByOID(t *testing.T) {
 
 	t.Run("error - wrong types in columns", func(t *testing.T) {
 		// Each column return value with invalid type
-		mockQueries := map[string]mockQuery{
+		mockes := map[string]mockStore{
 			"CreatedOn": {
 				scenario:  SuccessGet,
 				createdOn: false,
@@ -130,10 +130,10 @@ func TestGetByOID(t *testing.T) {
 			},
 		}
 
-		for columnName, mockQuery := range mockQueries {
+		for columnName, mock := range mockes {
 			want := Page{}
 
-			got, err := GetByOID(tOID, mockQuery)
+			got, err := GetByOID(tOID, mock)
 
 			if err == nil {
 				t.Errorf("expected error, got nil")
@@ -153,7 +153,7 @@ func TestGetByOID(t *testing.T) {
 	})
 
 	t.Run("error - unmarshaling JSON", func(t *testing.T) {
-		mockQuery := mockQuery{
+		mock := mockStore{
 			scenario:  SuccessGet,
 			createdOn: &tPage.Meta.CreatedOn,
 			updatedOn: &tPage.Meta.UpdatedOn,
@@ -161,7 +161,7 @@ func TestGetByOID(t *testing.T) {
 		}
 		want := Page{}
 
-		got, err := GetByOID(tOID, mockQuery)
+		got, err := GetByOID(tOID, mock)
 
 		if err == nil {
 			t.Errorf("expected error, got nil")
@@ -180,7 +180,7 @@ func TestGetByOID(t *testing.T) {
 }
 func TestSave(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		mockQuery := mockQuery{
+		mock := mockStore{
 			scenario:  SuccessSave,
 			oid:       &tOID,
 			createdOn: &tPage.Meta.CreatedOn,
@@ -188,7 +188,7 @@ func TestSave(t *testing.T) {
 		}
 		want := tPage
 
-		got, err := Save(tPage.Data, mockQuery)
+		got, err := Save(tPage.Data, mock)
 
 		if err != nil {
 			t.Errorf("expected Page, got err: %q", err)
@@ -201,10 +201,10 @@ func TestSave(t *testing.T) {
 	})
 
 	t.Run("error - ExecuteQuery", func(t *testing.T) {
-		mockQuery := mockQuery{scenario: Error}
+		mock := mockStore{scenario: Error}
 		want := Page{}
 
-		got, err := Save(tPage.Data, mockQuery)
+		got, err := Save(tPage.Data, mock)
 
 		if err == nil {
 			t.Errorf("expected error, got nil")
@@ -223,7 +223,7 @@ func TestSave(t *testing.T) {
 
 	t.Run("error - wrong types in columns", func(t *testing.T) {
 		// Each column return value with invalid type
-		mockQueries := map[string]mockQuery{
+		mockes := map[string]mockStore{
 			"OID": {
 				scenario:  SuccessSave,
 				oid:       false,
@@ -244,10 +244,10 @@ func TestSave(t *testing.T) {
 			},
 		}
 
-		for columnName, mockQuery := range mockQueries {
+		for columnName, mock := range mockes {
 			want := Page{}
 
-			got, err := Save(tPage.Data, mockQuery)
+			got, err := Save(tPage.Data, mock)
 
 			if err == nil {
 				t.Errorf("expected error, got nil")
@@ -269,7 +269,7 @@ func TestSave(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		mockQuery := mockQuery{
+		mock := mockStore{
 			scenario:  SuccessUpdate,
 			oid:       &tOID,
 			createdOn: &tPage.Meta.CreatedOn,
@@ -277,7 +277,7 @@ func TestUpdate(t *testing.T) {
 		}
 		want := tPage
 
-		got, err := Update(tOID, tPage.Data, mockQuery)
+		got, err := Update(tOID, tPage.Data, mock)
 
 		if err != nil {
 			t.Errorf("expected Page, got err: %q", err)
@@ -290,10 +290,10 @@ func TestUpdate(t *testing.T) {
 	})
 
 	t.Run("error - ExecuteQuery", func(t *testing.T) {
-		mockQuery := mockQuery{scenario: Error}
+		mock := mockStore{scenario: Error}
 		want := Page{}
 
-		got, err := Update(tOID, tPage.Data, mockQuery)
+		got, err := Update(tOID, tPage.Data, mock)
 
 		if err == nil {
 			t.Errorf("expected error, got nil")
@@ -312,7 +312,7 @@ func TestUpdate(t *testing.T) {
 
 	t.Run("error - wrong types in columns", func(t *testing.T) {
 		// Each column return value with invalid type
-		mockQueries := map[string]mockQuery{
+		mockes := map[string]mockStore{
 			"CreatedOn": {
 				scenario:  SuccessUpdate,
 				createdOn: false,
@@ -325,10 +325,10 @@ func TestUpdate(t *testing.T) {
 			},
 		}
 
-		for columnName, mockQuery := range mockQueries {
+		for columnName, mock := range mockes {
 			want := Page{}
 
-			got, err := Update(tOID, tPage.Data, mockQuery)
+			got, err := Update(tOID, tPage.Data, mock)
 
 			if err == nil {
 				t.Errorf("expected error, got nil")
