@@ -7,8 +7,8 @@ import (
 	"github.com/dmbar/glagol-go/models"
 )
 
-// PageSourceDB is for working with Page objects in DB
-var PageSourceDB models.DataSourceDB
+// DBStorePage is for working with Page objects in DB
+var DBStorePage models.DBStore
 
 func init() {
 	selectByOIDStmt, err := models.DB.Prepare(`SELECT created_on, updated_on, data FROM objects.pages WHERE oid = $1`)
@@ -24,7 +24,7 @@ func init() {
 		log.Fatal("prepare UPDATE statement error:\n", err)
 	}
 
-	PageSourceDB = models.DataSourceDB{
+	DBStorePage = models.DBStore{
 		DB: models.DB,
 		Stmnts: map[string]*sql.Stmt{
 			"selectByOID": selectByOIDStmt,

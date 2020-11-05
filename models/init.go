@@ -24,8 +24,8 @@ func init() {
 	}
 }
 
-// DataSource is a general interface for all queries to different data sources
-type DataSource interface {
+// Store is a general interface for all queries to different data sources
+type Store interface {
 	// ExecuteQuery performs a query and returns rows with result.
 	//
 	// queryCode - Query to execute. Optional
@@ -36,8 +36,8 @@ type DataSource interface {
 	ExecuteQuery(queryCode string, params []interface{}, dest ...interface{}) ([]interface{}, error)
 }
 
-// DataSourceDB is used for executing queries in database
-type DataSourceDB struct {
+// DBStore is used for executing queries in database
+type DBStore struct {
 	DB     *sql.DB
 	Stmnts map[string]*sql.Stmt
 }
@@ -50,7 +50,7 @@ type DataSourceDB struct {
 // params - Parameters for a SQL statement
 //
 // dest - Variables for saving results of a query, equals number of columns in SQL statement
-func (q DataSourceDB) ExecuteQuery(queryCode string, params []interface{}, dest ...interface{}) ([]interface{}, error) {
+func (q DBStore) ExecuteQuery(queryCode string, params []interface{}, dest ...interface{}) ([]interface{}, error) {
 	rows, err := q.Stmnts[queryCode].Query(params...)
 	if err != nil {
 		return nil, err

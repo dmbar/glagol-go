@@ -31,11 +31,9 @@ type Data struct {
 }
 
 // GetByOID returns one (1) Page from source using ObjectID
-//
-// oid - ObjectID of record
-//
-// source - data source (DB, external service, etc.)
-func GetByOID(oid string, source models.DataSource) (Page, error) {
+//  oid - ObjectID of record
+//  store - data source (DB, external service, etc.)
+func GetByOID(oid string, store models.Store) (Page, error) {
 	var result Page
 	// Variables to be used in query
 	var createdOn time.Time
@@ -43,7 +41,7 @@ func GetByOID(oid string, source models.DataSource) (Page, error) {
 	var dataJSON []byte
 
 	// Executing query to DB
-	queryResult, err := source.ExecuteQuery("selectByOID", []interface{}{oid}, &createdOn, &updatedOn, &dataJSON)
+	queryResult, err := store.ExecuteQuery("selectByOID", []interface{}{oid}, &createdOn, &updatedOn, &dataJSON)
 	if err != nil {
 		return Page{}, err
 	}
@@ -88,11 +86,9 @@ func GetByOID(oid string, source models.DataSource) (Page, error) {
 }
 
 // Save saves Page data to source and returns new Page
-//
-// data - Page data
-//
-// source - data source (DB, external service, etc.)
-func Save(data Data, source models.DataSource) (Page, error) {
+//  data - Page data
+//  store - data source (DB, external service, etc.)
+func Save(data Data, store models.Store) (Page, error) {
 	var result Page
 	// Variables to be used in query
 	var oid string
@@ -100,7 +96,7 @@ func Save(data Data, source models.DataSource) (Page, error) {
 	var updatedOn time.Time
 
 	// Executing query to DB
-	queryResult, err := source.ExecuteQuery("insert", []interface{}{data}, &oid, &createdOn, &updatedOn)
+	queryResult, err := store.ExecuteQuery("insert", []interface{}{data}, &oid, &createdOn, &updatedOn)
 	if err != nil {
 		return Page{}, err
 	}
@@ -139,20 +135,17 @@ func Save(data Data, source models.DataSource) (Page, error) {
 }
 
 // Update updates Page instance in source and returns updated Page
-//
-// oid - ObjectID of record
-//
-// data - Page data
-//
-// source - data source (DB, external service, etc.)
-func Update(oid string, data Data, source models.DataSource) (Page, error) {
+//  oid - ObjectID of record
+//  data - Page data
+//  store - data source (DB, external service, etc.)
+func Update(oid string, data Data, store models.Store) (Page, error) {
 	var result Page
 	// Variables to be used in query
 	var createdOn time.Time
 	var updatedOn time.Time
 
 	// Executing query to DB
-	queryResult, err := source.ExecuteQuery("update", []interface{}{data, oid}, &createdOn, &updatedOn)
+	queryResult, err := store.ExecuteQuery("update", []interface{}{data, oid}, &createdOn, &updatedOn)
 	if err != nil {
 		return Page{}, err
 	}
