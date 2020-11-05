@@ -14,7 +14,21 @@ func TestHandleGET(t *testing.T) {
 		HandleGET(rs, rq)
 
 		got := rs.Body.String()
-		want := "OID was not provided or it is not a valid UUID value"
+		want := invalidOID
+
+		if got != want {
+			t.Errorf("want %q, got %q", want, got)
+		}
+	})
+
+	t.Run("error - invalid OID", func(t *testing.T) {
+		rq, _ := http.NewRequest(http.MethodGet, "/api/v1/page?oid=123", nil)
+		rs := httptest.NewRecorder()
+
+		HandleGET(rs, rq)
+
+		got := rs.Body.String()
+		want := invalidOID
 
 		if got != want {
 			t.Errorf("want %q, got %q", want, got)
