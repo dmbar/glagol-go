@@ -3,16 +3,15 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/dmbar/glagol-go/handlers/page"
 )
 
-const apiVersion = "v1"
-
-func handleGETByOID(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "inside Page route\n%q\n%q", r.Method, r.UserAgent())
-}
+const apiRoot string = "/api"
+const apiVersion string = "/v1"
 
 func main() {
-	http.HandleFunc(fmt.Sprintf("/api/%s/page", apiVersion), handleGETByOID)
+	http.HandleFunc(fmt.Sprintf("%s%s/page", apiRoot, apiVersion), page.HandleGET)
 
-	http.ListenAndServe(":80", nil)
+	http.ListenAndServe("localhost:8080", nil)
 }
