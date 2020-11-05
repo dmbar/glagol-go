@@ -14,7 +14,7 @@ func TestHandleGET(t *testing.T) {
 		HandleGET(rs, rq)
 
 		got := rs.Body.String()
-		want := "good morning slut"
+		want := "OID was not provided or it is not a valid UUID value"
 
 		if got != want {
 			t.Errorf("want %q, got %q", want, got)
