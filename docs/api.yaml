@@ -27,7 +27,15 @@ paths:
               schema:
                 "$ref": "../packages/schemas/page.json#"
         "400":
-          description: OID was not provided or it is not a valid UUID value
+          description: Invalid parameters
+          content:
+            text/plain:
+              schema:
+                anyOf:
+                  - type: string
+                    description: OID was not provided
+                  - type: string
+                    description: OID is not a valid UUID value
         "500":
           description: Internal server error
     post:
@@ -63,6 +71,14 @@ paths:
               schema:
                 "$ref": "../packages/schemas/page.json#"
         "400":
-          description: Provided OID or JSON message is invalid
+          description: Invalid parameters
+          content:
+            text/plain:
+              schema:
+                anyOf:
+                  - type: string
+                    description: Provided OID is invalid
+                  - type: string
+                    description: JSON message is invalid
         "500":
           description: Internal server error
