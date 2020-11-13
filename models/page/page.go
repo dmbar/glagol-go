@@ -30,10 +30,10 @@ type Data struct {
 	Body   string `json:"body"`
 }
 
-// GetByOID returns one (1) Page from source using ObjectID
+// getByOID returns one (1) Page from source using ObjectID
 //  oid - ObjectID of record
 //  store - data source (DB, external service, etc.)
-func GetByOID(oid string, store models.Store) (Page, error) {
+func getByOID(oid string, store models.Store) (Page, error) {
 	var result Page
 	// Variables to be used in query
 	var createdOn time.Time
@@ -85,10 +85,10 @@ func GetByOID(oid string, store models.Store) (Page, error) {
 	return result, nil
 }
 
-// Save saves Page data to source and returns new Page
+// save saves Page data to source and returns new Page
 //  data - Page data
 //  store - data source (DB, external service, etc.)
-func Save(data Data, store models.Store) (Page, error) {
+func save(data Data, store models.Store) (Page, error) {
 	var result Page
 	// Variables to be used in query
 	var oid string
@@ -134,11 +134,11 @@ func Save(data Data, store models.Store) (Page, error) {
 	return result, nil
 }
 
-// Update updates Page instance in source and returns updated Page
+// update updates Page instance in source and returns updated Page
 //  oid - ObjectID of record
 //  data - Page data
 //  store - data source (DB, external service, etc.)
-func Update(oid string, data Data, store models.Store) (Page, error) {
+func update(oid string, data Data, store models.Store) (Page, error) {
 	var result Page
 	// Variables to be used in query
 	var createdOn time.Time

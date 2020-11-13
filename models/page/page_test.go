@@ -74,7 +74,7 @@ func TestGetByOID(t *testing.T) {
 		}
 		want := tPage
 
-		got, err := GetByOID(tOID, mock)
+		got, err := CRUD.GetByOID(tOID, mock)
 
 		if err != nil {
 			t.Errorf("expected Page, got err: %q", err)
@@ -90,7 +90,7 @@ func TestGetByOID(t *testing.T) {
 		mock := mockStore{scenario: Error}
 		want := Page{}
 
-		got, err := GetByOID(tOID, mock)
+		got, err := CRUD.GetByOID(tOID, mock)
 
 		if err == nil {
 			t.Errorf("expected error, got nil")
@@ -133,7 +133,7 @@ func TestGetByOID(t *testing.T) {
 		for columnName, mock := range mockes {
 			want := Page{}
 
-			got, err := GetByOID(tOID, mock)
+			got, err := CRUD.GetByOID(tOID, mock)
 
 			if err == nil {
 				t.Errorf("expected error, got nil")
@@ -161,7 +161,7 @@ func TestGetByOID(t *testing.T) {
 		}
 		want := Page{}
 
-		got, err := GetByOID(tOID, mock)
+		got, err := CRUD.GetByOID(tOID, mock)
 
 		if err == nil {
 			t.Errorf("expected error, got nil")
@@ -188,7 +188,7 @@ func TestSave(t *testing.T) {
 		}
 		want := tPage
 
-		got, err := Save(tPage.Data, mock)
+		got, err := CRUD.Save(tPage.Data, mock)
 
 		if err != nil {
 			t.Errorf("expected Page, got err: %q", err)
@@ -204,7 +204,7 @@ func TestSave(t *testing.T) {
 		mock := mockStore{scenario: Error}
 		want := Page{}
 
-		got, err := Save(tPage.Data, mock)
+		got, err := CRUD.Save(tPage.Data, mock)
 
 		if err == nil {
 			t.Errorf("expected error, got nil")
@@ -247,7 +247,7 @@ func TestSave(t *testing.T) {
 		for columnName, mock := range mockes {
 			want := Page{}
 
-			got, err := Save(tPage.Data, mock)
+			got, err := CRUD.Save(tPage.Data, mock)
 
 			if err == nil {
 				t.Errorf("expected error, got nil")
@@ -277,7 +277,7 @@ func TestUpdate(t *testing.T) {
 		}
 		want := tPage
 
-		got, err := Update(tOID, tPage.Data, mock)
+		got, err := CRUD.Update(tOID, tPage.Data, mock)
 
 		if err != nil {
 			t.Errorf("expected Page, got err: %q", err)
@@ -293,7 +293,7 @@ func TestUpdate(t *testing.T) {
 		mock := mockStore{scenario: Error}
 		want := Page{}
 
-		got, err := Update(tOID, tPage.Data, mock)
+		got, err := CRUD.Update(tOID, tPage.Data, mock)
 
 		if err == nil {
 			t.Errorf("expected error, got nil")
@@ -328,7 +328,7 @@ func TestUpdate(t *testing.T) {
 		for columnName, mock := range mockes {
 			want := Page{}
 
-			got, err := Update(tOID, tPage.Data, mock)
+			got, err := CRUD.Update(tOID, tPage.Data, mock)
 
 			if err == nil {
 				t.Errorf("expected error, got nil")
